@@ -1,0 +1,23 @@
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../models/food.dart';
+
+class StorageService {
+  static const String key = 'foods';
+
+  Future<void> saveFoods(List<Food> foods) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList =
+        foods.map((f) => jsonEncode(f.toJson())).toList();
+    await prefs.setStringList(key, jsonList);
+  }
+
+  Future<List<Food>> loadFoods() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = prefs.getStringList(key) ?? [];
+
+    return jsonList
+        .map((e) => Food.fromJson(jsonDecode(e)))
+        .toList();
+  }
+}

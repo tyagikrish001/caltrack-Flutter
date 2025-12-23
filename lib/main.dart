@@ -1,136 +1,172 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  runApp(const CalTrackApp());
+  runApp(const MyApp());
 }
 
-class CalTrackApp extends StatelessWidget {
-  const CalTrackApp({super.key});
+/* =======================
+   MODEL
+======================= */
+class Food {
+  final String name;
+  final int calories;
+
+  Food({required this.name, required this.calories});
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'calories': calories,
+      };
+
+  factory Food.fromJson(Map<String, dynamic> json) {
+    return Food(
+      name: json['name'],
+      calories: json['calories'],
+    );
+  }
+}
+
+/* =======================
+   STORAGE
+======================= */
+class StorageService {
+  static const String key = 'foods';
+
+  Future<void> saveFoods(List<Food> foods) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = foods.map((f) => jsonEncode(f.toJson())).toList();
+    await prefs.setStringList(key, jsonList);
+  }
+
+  Future<List<Food>> loadFoods() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = prefs.getStringList(key) ?? [];
+    return jsonList
+        .map((e) => Food.fromJson(jsonDecode(e)))
+        .toList();
+  }
+}
+
+/* =======================
+   APP
+======================= */
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
       title: 'CalTrack',
-      theme: ThemeData(primarySwatch: Colors.green),
-      home: const HomeScreen(),
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(useMaterial3: true),
+      home: const HomePage(),
     );
   }
 }
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  int totalCalories = 0;
-  final List<Map<String, dynamic>> foods = [];
+class _HomePageState extends State<HomePage> {
+  final StorageService storage = StorageService();
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController calorieController = TextEditingController();
 
-  void addFood(String name, int calories) {
-    setState(() {
-      foods.add({'name': name, 'cal': calories});
-      totalCalories += calories;
-    });
+  List<Food> foods = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadData();
   }
 
-  void deleteFood(int index) {
-    setState(() {
-      totalCalories -= foods[index]['cal'] as int;
-      foods.removeAt(index);
-    });
+  void loadData() async {
+    foods = await storage.loadFoods();
+    setState(() {});
   }
 
-  void showAddFoodDialog() {
-    final nameController = TextEditingController();
-    final calController = TextEditingController();
+  void addFood() async {
+    if (nameController.text.isEmpty ||
+        calorieController.text.isEmpty) return;
 
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Add Food"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: "Food name"),
-            ),
-            TextField(
-              controller: calController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: "Calories"),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (nameController.text.isNotEmpty &&
-                  calController.text.isNotEmpty) {
-                addFood(
-                  nameController.text,
-                  int.parse(calController.text),
-                );
-                Navigator.pop(context);
-              }
-            },
-            child: const Text("Add"),
-          ),
-        ],
-      ),
+    final food = Food(
+      name: nameController.text,
+      calories: int.parse(calorieController.text),
     );
+
+    foods.add(food);
+    await storage.saveFoods(foods);
+
+    nameController.clear();
+    calorieController.clear();
+
+    setState(() {});
   }
+
+  void deleteFood(int index) async {
+    foods.removeAt(index);
+    await storage.saveFoods(foods);
+    setState(() {});
+  }
+
+  int get totalCalories =>
+      foods.fold(0, (sum, item) => sum + item.calories);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("CalTrack")),
-      floatingActionButton: FloatingActionButton(
-        onPressed: showAddFoodDialog,
-        child: const Icon(Icons.add),
-      ),
+      appBar: AppBar(title: const Text('CalTrack')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Today's Calories",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
             Text(
-              "Total Intake: $totalCalories kcal",
-              style: const TextStyle(fontSize: 18),
+              "Today's Calories: $totalCalories kcal",
+              style: const TextStyle(fontSize: 20),
             ),
-            const SizedBox(height: 20),
-            const Text(
-              "Food List",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            const SizedBox(height: 12),
+
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Food name'),
             ),
+            TextField(
+              controller: calorieController,
+              decoration: const InputDecoration(labelText: 'Calories'),
+              keyboardType: TextInputType.number,
+            ),
+
             const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: addFood,
+              child: const Text('Add Food'),
+            ),
+
+            const Divider(),
+
             Expanded(
               child: foods.isEmpty
-                  ? const Center(child: Text("No food added"))
+                  ? const Center(child: Text('No food added yet'))
                   : ListView.builder(
                       itemCount: foods.length,
                       itemBuilder: (context, index) {
-                        return Card(
-                          child: ListTile(
-                            title: Text(foods[index]['name']),
-                            subtitle:
-                                Text("${foods[index]['cal']} kcal"),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => deleteFood(index),
-                            ),
+                        return ListTile(
+                          title: Text(foods[index].name),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('${foods[index].calories} kcal'),
+                              IconButton(
+                                icon: const Icon(Icons.delete),
+                                onPressed: () => deleteFood(index),
+                              ),
+                            ],
                           ),
                         );
                       },
