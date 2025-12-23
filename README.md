@@ -1,30 +1,24 @@
-# CalTrack – Daily Calorie Tracker (Flutter)
+## 🚀 CalTrack – Daily Calorie Tracker
 
-CalTrack is a simple calorie tracking application built using Flutter.
-It helps users track their daily calorie intake in a clean and minimal UI.
+A simple calorie tracking app built using Flutter.
+Users can add food items, track daily calorie intake,
+and manage their food list.
 
-## Features
-- Add food items with calorie values
-- Automatically updates total daily calories
-- Clean and simple UI
-- Built using Flutter (Web & Mobile ready)
+## ✨ Features
+- Add food with calories
+- Delete food items
+- Auto-updating total calories
+- Clean UI (Web & Mobile ready)
 
-## Tech Stack
+## 🛠 Tech Stack
 - Flutter
 - Dart
-- Material UI
+- Git & GitHub
 
-## Project Status
-- Core functionality completed
-- UI improvements in progress
-- Future features planned
+## 📌 Project Status
+In active development. More features coming soon.
 
-## Future Enhancements
-- Food history (daily / weekly)
-- Camera-based food input
-- Firebase authentication
-- Cloud data sync
-
-## Author
-Krish Tyagi  
-GitHub: https://github.com/tyagikrish001
+## 🔮 Planned Features
+- Local storage
+- Daily history
+- Goal-based calorie tracking
