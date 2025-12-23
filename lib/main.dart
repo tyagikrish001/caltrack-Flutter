@@ -27,71 +27,74 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int totalCalories = 0;
+  final List<Map<String, dynamic>> foods = [];
 
-  final TextEditingController foodController = TextEditingController();
-  final TextEditingController calorieController = TextEditingController();
- void addFood() {
-  if (!mounted) return;
-
-  final caloriesText = calorieController.text;
-  final int calories = int.tryParse(caloriesText) ?? 0;
-
-    if (calories > 0) {
-      setState(() {
-        totalCalories += calories;
-      });
-    }
-
-    foodController.clear();
-    calorieController.clear();
-    Navigator.pop(context);
+  void addFood(String name, int calories) {
+    setState(() {
+      foods.add({'name': name, 'cal': calories});
+      totalCalories += calories;
+    });
   }
 
-  void openAddFoodDialog() {
+  void deleteFood(int index) {
+    setState(() {
+      totalCalories -= foods[index]['cal'] as int;
+      foods.removeAt(index);
+    });
+  }
+
+  void showAddFoodDialog() {
+    final nameController = TextEditingController();
+    final calController = TextEditingController();
+
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Add Food"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: foodController,
-                decoration: const InputDecoration(
-                  labelText: "Food name",
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: calorieController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: "Calories",
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
+      builder: (_) => AlertDialog(
+        title: const Text("Add Food"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: "Food name"),
             ),
-            ElevatedButton(
-              onPressed: addFood,
-              child: const Text("Add"),
+            TextField(
+              controller: calController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: "Calories"),
             ),
           ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (nameController.text.isNotEmpty &&
+                  calController.text.isNotEmpty) {
+                addFood(
+                  nameController.text,
+                  int.parse(calController.text),
+                );
+                Navigator.pop(context);
+              }
+            },
+            child: const Text("Add"),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("CalTrack"),
+      appBar: AppBar(title: const Text("CalTrack")),
+      floatingActionButton: FloatingActionButton(
+        onPressed: showAddFoodDialog,
+        child: const Icon(Icons.add),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -102,32 +105,36 @@ class _HomeScreenState extends State<HomeScreen> {
               "Today's Calories",
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 20),
-
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text("Total Intake"),
-                  Text(
-                    "$totalCalories kcal",
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
+            const SizedBox(height: 10),
+            Text(
+              "Total Intake: $totalCalories kcal",
+              style: const TextStyle(fontSize: 18),
             ),
-
-            const SizedBox(height: 30),
-
-            ElevatedButton(
-              onPressed: openAddFoodDialog,
-              child: const Text("Add Food"),
+            const SizedBox(height: 20),
+            const Text(
+              "Food List",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Expanded(
+              child: foods.isEmpty
+                  ? const Center(child: Text("No food added"))
+                  : ListView.builder(
+                      itemCount: foods.length,
+                      itemBuilder: (context, index) {
+                        return Card(
+                          child: ListTile(
+                            title: Text(foods[index]['name']),
+                            subtitle:
+                                Text("${foods[index]['cal']} kcal"),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => deleteFood(index),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
